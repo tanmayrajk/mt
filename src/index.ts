@@ -19,8 +19,9 @@ import {
 } from "./utils";
 
 import { WebClient, ErrorCode, type WebAPIPlatformError } from "@slack/web-api";
-
 const client = new WebClient(process.env.SLACK_BOT_TOKEN);
+
+import { formatInTimeZone } from "date-fns-tz";
 
 fastify.post("/interactivity", async (req, res) => {
   const body = req.body as { payload: string };
@@ -240,10 +241,98 @@ fastify.post("/lastrun", async (req, res) => {
     };
   }
 
+  const barebonesData = await response.json();
+
+  console.log(barebonesData);
+
+  const data = (
+    barebonesData as {
+      data: {
+        wpm: number;
+        acc: number;
+        timestamp: number;
+        rawWpm: number;
+        mode: string;
+        mode2: string;
+        testDuration: number;
+        charStats: number[];
+        consistency: number;
+        chartData: {
+          wpm: number[];
+          burst: number[];
+          err: number[];
+        };
+      };
+    }
+  ).data;
+
+  const d = formatInTimeZone(
+    data.timestamp,
+    "UTC",
+    "HH:mm 'on' dd MMM yyyy 'GMT'",
+  );
+
   try {
     await client.chat.postMessage({
       channel: body.channel_id,
       text: "hi lol 🦧",
+      blocks: [
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: `${Math.round(data.wpm)} WPM  /  ${Math.round(data.acc)}% acc`,
+          },
+          level: 1,
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*mode*: ${data.mode} ${data.mode2}`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*raw*: ${Math.round(data.rawWpm)} WPM`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*characters*: ${data.charStats.join("/")}`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*consistency*: ${Math.round(data.consistency)}%`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*time*: ${Math.round(data.testDuration)}s`,
+          },
+        },
+        {
+          type: "divider",
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `test taken by <@${user.userId}> at ${d}`,
+            },
+          ],
+        },
+      ],
     });
     res.code(200).send();
     return;
