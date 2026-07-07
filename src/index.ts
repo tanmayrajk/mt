@@ -8,12 +8,83 @@ fastify.register(formbody);
 import { db } from "./db";
 import { users } from "./db/schema";
 import type { LastResult, SlashCommandReqBody } from "./types/api";
+import { eq } from "drizzle-orm";
 
 fastify.post("/interactivity", async (req, res) => {
   const body = req.body as { payload: string };
   const payload = JSON.parse(body.payload);
   console.log(payload);
   if (payload.actions[0].action_id === "correct_username") {
+    const userExists = !!(await db.query.users.findFirst({
+      where: eq(users.userId, payload.user.id),
+    }));
+    if (userExists) {
+      await fetch(payload.response_url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          replace_original: true,
+          text: "please use a normal slack client bruh",
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: `an apekey associated with this user already exists. do you want to replace it? 🤔`,
+              },
+            },
+            {
+              type: "actions",
+              elements: [
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "yep",
+                  },
+                  action_id: "replace_apekey",
+                  value: payload.actions[0].value,
+                },
+                {
+                  type: "button",
+                  text: {
+                    type: "plain_text",
+                    text: "nope",
+                  },
+                  action_id: "dont_replace_apekey",
+                  value: payload.actions[0].value,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+    } else {
+      await db
+        .insert(users)
+        .values({
+          userId: payload.user.id,
+          apeKey: payload.actions[0].value,
+        })
+        .onConflictDoUpdate({
+          target: users.userId,
+          set: {
+            apeKey: payload.actions[0].value,
+          },
+        });
+      await fetch(payload.response_url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          replace_original: true,
+          text: "wooo you're officially an ape now! 🐵",
+        }),
+      });
+    }
     console.log(
       "check if a apekey associated with that user alr exists, if yes then ask the user if they want to replace it or not, if yes then replace it",
     );
@@ -34,6 +105,40 @@ fastify.post("/interactivity", async (req, res) => {
     //   replace_original: true,
     //   text: "idk man that's the username associated with the apekey you provided 😒",
     // };
+  } else if (payload.actions[0].action_id === "replace_apekey") {
+    await db
+      .insert(users)
+      .values({
+        userId: payload.user.id,
+        apeKey: payload.actions[0].value,
+      })
+      .onConflictDoUpdate({
+        target: users.userId,
+        set: {
+          apeKey: payload.actions[0].value,
+        },
+      });
+    await fetch(payload.response_url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        replace_original: true,
+        text: "replaced! 🐵",
+      }),
+    });
+  } else if (payload.actions[0].action_id === "dont_replace_apekey") {
+    await fetch(payload.response_url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        replace_original: true,
+        text: "i guess bro 🫩",
+      }),
+    });
   }
   return {};
 });
