@@ -105,6 +105,23 @@ fastify.post("/interactivity", async (req, res) => {
         text: "i guess bro 🫩",
       }),
     );
+  } else if (payload.actions[0].action_id === "delete_apekey") {
+    await db.delete(users).where(eq(users.userId, payload.user.id));
+    await replyToInteraction(
+      payload.response_url,
+      JSON.stringify({
+        replace_original: true,
+        text: "you're no longer an ape 🦧",
+      }),
+    );
+  } else if (payload.actions[0].action_id === "cancel_delete_apekey") {
+    await replyToInteraction(
+      payload.response_url,
+      JSON.stringify({
+        replace_original: true,
+        text: "🦧",
+      }),
+    );
   }
   return {};
 });
@@ -128,6 +145,35 @@ fastify.post("/setapekey", async (req, res) => {
   ];
   const mcq = createTextOnlyMCQ(q, choices);
 
+  return {
+    response_type: "ephemeral",
+    text: "please use a normal slack client bruh",
+    blocks: mcq.blocks,
+  };
+});
+
+fastify.post("/deleteapekey", async (req, res) => {
+  console.log("hi lol");
+  const body = req.body as SlashCommandReqBody;
+  const userId = body.user_id;
+  const userExists = !!(await db.query.users.findFirst({
+    where: eq(users.userId, userId),
+  }));
+  if (!userExists) {
+    return {
+      response_type: "ephemeral",
+      text: "how are you gonna delete an apekey when you haven't even set one 🫩",
+    };
+  }
+  const q = createTextEl(
+    "mrkdwn",
+    `once your apekey is deleted, you won't be able to use the bot until you add another apekey using \`/setapekey\`. do you still want to delete the apekey?`,
+  );
+  const choices = [
+    createButtonEl("yeah", "delete_apekey", "uh"),
+    createButtonEl("nah", "cancel_delete_apekey", "uh"),
+  ];
+  const mcq = createTextOnlyMCQ(q, choices);
   return {
     response_type: "ephemeral",
     text: "please use a normal slack client bruh",
