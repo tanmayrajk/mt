@@ -17,7 +17,10 @@ import {
   replyToInteraction,
   getNameFromLastTest,
 } from "./utils";
-import { JsxEmit } from "typescript";
+
+import { WebClient, ErrorCode, type WebAPIPlatformError } from "@slack/web-api";
+
+const client = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 fastify.post("/interactivity", async (req, res) => {
   const body = req.body as { payload: string };
@@ -191,6 +194,83 @@ fastify.post("/deleteapekey", async (req, res) => {
     text: "please use a normal slack client bruh",
     blocks: mcq.blocks,
   };
+});
+
+fastify.post("/lastrun", async (req, res) => {
+  const body = req.body as SlashCommandReqBody;
+  const user = await db.query.users.findFirst({
+    where: eq(users.userId, body.user_id),
+  });
+
+  if (!user) {
+    return {
+      response_type: "ephemeral",
+      text: "no idea who you are. use /setapekey to register 🐒",
+      blocks: [
+        {
+          type: "section",
+          text: createTextEl(
+            "mrkdwn",
+            `no idea who you are. use \`/setapekey\` to register 🐒`,
+          ),
+        },
+      ],
+    };
+  }
+
+  const url = `https://api.monkeytype.com/results/last`;
+  const headers = { Authorization: `ApeKey ${user.apeKey}` };
+  const response = await fetch(url, {
+    headers,
+  });
+
+  if (response.status != 200) {
+    return {
+      response_type: "ephemeral",
+      text: "request failed. you might wanna set a new apekey with /setapekey 🐒",
+      blocks: [
+        {
+          type: "section",
+          text: createTextEl(
+            "mrkdwn",
+            `request failed. you might wanna set a new apekey with \`/setapekey\` 🐒`,
+          ),
+        },
+      ],
+    };
+  }
+
+  try {
+    await client.chat.postMessage({
+      channel: body.channel_id,
+      text: "hi lol 🦧",
+    });
+    res.code(200).send();
+    return;
+  } catch (e) {
+    if (
+      e &&
+      typeof e === "object" &&
+      "code" in e &&
+      e.code === ErrorCode.PlatformError
+    ) {
+      const err = e as WebAPIPlatformError;
+
+      if (err.data.error === "channel_not_found") {
+        return {
+          response_type: "ephemeral",
+          text: "add me in the channel to run this 🐵",
+        };
+      }
+
+      console.log(err.data.error);
+      console.log(err.data.response_metadata);
+    } else {
+      console.error(e);
+    }
+  }
+
+  return {};
 });
 
 try {

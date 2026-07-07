@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fastify/formbody": "^8.0.2",
+    "@slack/web-api": "^7.19.0",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.9.0"
   }
