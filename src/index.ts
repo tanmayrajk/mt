@@ -17,6 +17,7 @@ import {
   replyToInteraction,
   getNameFromLastTest,
 } from "./utils";
+import { JsxEmit } from "typescript";
 
 fastify.post("/interactivity", async (req, res) => {
   const body = req.body as { payload: string };
@@ -51,12 +52,14 @@ fastify.post("/interactivity", async (req, res) => {
         .insert(users)
         .values({
           userId: payload.user.id,
-          apeKey: payload.actions[0].value,
+          apeKey: JSON.parse(payload.actions[0].value).apeKey,
+          username: JSON.parse(payload.actions[0].value).username,
         })
         .onConflictDoUpdate({
           target: users.userId,
           set: {
-            apeKey: payload.actions[0].value,
+            apeKey: JSON.parse(payload.actions[0].value).apeKey,
+            username: JSON.parse(payload.actions[0].value).username,
           },
         });
 
@@ -81,12 +84,14 @@ fastify.post("/interactivity", async (req, res) => {
       .insert(users)
       .values({
         userId: payload.user.id,
-        apeKey: payload.actions[0].value,
+        apeKey: JSON.parse(payload.actions[0].value).apeKey,
+        username: JSON.parse(payload.actions[0].value).username,
       })
       .onConflictDoUpdate({
         target: users.userId,
         set: {
-          apeKey: payload.actions[0].value,
+          apeKey: JSON.parse(payload.actions[0].value).apeKey,
+          username: JSON.parse(payload.actions[0].value).username,
         },
       });
 
@@ -140,7 +145,14 @@ fastify.post("/setapekey", async (req, res) => {
 
   const q = createTextEl("mrkdwn", `are you *${userName}* on monkeytype? 🤔`);
   const choices = [
-    createButtonEl("yeah", "correct_username", apeKey),
+    createButtonEl(
+      "yeah",
+      "correct_username",
+      JSON.stringify({
+        apeKey,
+        username: userName,
+      }),
+    ),
     createButtonEl("uh no", "incorrect_username", apeKey),
   ];
   const mcq = createTextOnlyMCQ(q, choices);
