@@ -23,6 +23,136 @@ const client = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 import { formatInTimeZone } from "date-fns-tz";
 
+import { Canvas } from "skia-canvas";
+
+import {
+  Chart,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  registerables,
+} from "chart.js";
+Chart.register(
+  ...registerables,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+);
+
+const canvas = new Canvas(800, 200);
+const ctx = canvas.getContext("2d");
+
+ctx.fillStyle = "#fff";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+new Chart(canvas as any, {
+  data: {
+    labels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    datasets: [
+      {
+        type: "line",
+        label: "wpm",
+        yAxisID: "wpm",
+        data: [
+          192, 174, 128, 126, 132, 116, 122, 117, 115, 116, 119, 113, 115, 120,
+          123,
+        ],
+        borderColor: "#4fd1e8",
+        tension: 0.4,
+      },
+      {
+        type: "line",
+        label: "burst",
+        yAxisID: "wpm",
+        data: [
+          192, 156, 108, 72, 156, 132, 156, 132, 84, 132, 144, 60, 144, 180,
+          168,
+        ],
+        borderColor: "#4fd1e8",
+        tension: 0.4,
+      },
+      {
+        type: "scatter",
+        yAxisID: "err",
+        label: "err",
+        data: [
+          null,
+          null,
+          2,
+          null,
+          null,
+          2,
+          null,
+          3,
+          null,
+          null,
+          null,
+          1,
+          null,
+          null,
+          null,
+        ],
+        borderColor: "#4fd1e8",
+        tension: 0.4,
+      },
+    ],
+  },
+  options: {
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          display: false,
+        },
+        border: {
+          display: false,
+        },
+      },
+      wpm: {
+        type: "linear",
+        display: true,
+        position: "left",
+        min: 0,
+        ticks: {
+          stepSize: 40,
+          display: false,
+        },
+        grid: {
+          display: false,
+        },
+        border: {
+          display: false,
+        },
+      },
+      err: {
+        type: "linear",
+        display: true,
+        position: "right",
+        max: 8,
+        min: 0,
+        grid: {
+          drawOnChartArea: false,
+          display: false,
+        },
+        ticks: {
+          display: false,
+        },
+        border: {
+          display: false,
+        },
+      },
+    },
+  },
+});
+
+await Bun.write("chart.png", await canvas.png);
+
 fastify.post("/interactivity", async (req, res) => {
   const body = req.body as { payload: string };
   const payload = JSON.parse(body.payload);
@@ -262,6 +392,7 @@ fastify.post("/lastrun", async (req, res) => {
           burst: number[];
           err: number[];
         };
+        language: string;
       };
     }
   ).data;
@@ -318,6 +449,13 @@ fastify.post("/lastrun", async (req, res) => {
           text: {
             type: "mrkdwn",
             text: `*time*: ${Math.round(data.testDuration)}s`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `*language*: ${data.language ? data.language : "english"}`,
           },
         },
         {
