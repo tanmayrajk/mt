@@ -377,8 +377,19 @@ fastify.post("/streak", async (req, res) => {
   })
 
   if (!user) {
-    // do something and return
-    return
+    return {
+      response_type: "ephemeral",
+      text: "no idea who you are. use /setapekey to register 🐵",
+      blocks: [
+        {
+          type: "section",
+          text: createTextEl(
+            "mrkdwn",
+            `no idea who you are. use \`/setapekey\` to register 🐒`
+          )
+        }
+      ]
+    }
   }
 
   const url = "https://api.monkeytype.com/users/currentTestActivity";
@@ -391,26 +402,44 @@ fastify.post("/streak", async (req, res) => {
       })
     testsActivity = (await streakRes.json() as any).data.testsByDays
   } catch (e) {
-    // do something and return
-    return
+    return {
+      response_type: "ephemeral",
+      text: "something didn't work. try again. 🦧",
+      blocks: [
+        {
+          type: "section",
+          text: createTextEl(
+            "plain_text",
+            "something didn't work. try again. 🦧"
+          )
+        }
+      ]
+    }
   }
 
   if ((testsActivity as any[]).length <= 0) {
-    // do something and return
-    return
+    return {
+      response_type: "ephemeral",
+      text: "seems like you haven't given any tests? 🦧",
+      blocks: [
+        {
+          type: "section",
+          text: createTextEl(
+            "plain_text",
+            "seems like you haven't given any tests? 🦧"
+          )
+        }
+      ]
+    }
   }
 
   const requiredActivity = (testsActivity as any[]).slice(-105)
-  const max = Math.max(...requiredActivity.filter((x): x is number => x !== null))
-  console.log(max)
-  const range = max/4
-
   // ⬜🟨🟧🟫🟥
 
   let text = "";
   requiredActivity.forEach((a, i) => {
     if (i !== 0 && i % 7 === 0) {
-      text += " "
+      text += "  "
     }
     if (i !== 0 && i % 21 === 0) {
       text += "\n"
@@ -419,26 +448,35 @@ fastify.post("/streak", async (req, res) => {
       text += "⬜"
       return
     }
-    if (a === 1) {
+
+    if (a <= 3) {
       text += "🟨"
       return
-    }
-    if (a <= max / 4) {
-      text += "🟨"
-      return
-    } else if (a <= (max / 4) * 2) {
+    } else if (a <= 6) {
       text += "🟧"
       return
-    } else if (a <= (max / 4) * 3) {
+    } else if (a <= 9) {
       text += "🟫"
       return
-    } else if (a <= (max / 4) * 4) {
+    } else if (a > 9) {
       text += "🟥"
       return
     }
   })
 
-  console.log(text)
+  return {
+    response_type: "",
+    text: "streak",
+    blocks: [
+      {
+        type: "section",
+        text: createTextEl(
+          "mrkdwn",
+          `\`\`\`${text}\`\`\``
+        )
+      },
+    ]
+  }
 
 })
 
