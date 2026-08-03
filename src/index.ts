@@ -297,6 +297,13 @@ fastify.post("/lastrun", async (req, res) => {
           type: "section",
           text: {
             type: "mrkdwn",
+            text: `*language*: ${data.language ? data.language : "english"}`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
             text: `*raw*: ${Math.round(data.rawWpm)} WPM`,
           },
         },
@@ -319,13 +326,6 @@ fastify.post("/lastrun", async (req, res) => {
           text: {
             type: "mrkdwn",
             text: `*time*: ${Math.round(data.testDuration)}s`,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `*language*: ${data.language ? data.language : "english"}`,
           },
         },
         {
@@ -369,6 +369,79 @@ fastify.post("/lastrun", async (req, res) => {
 
   return {};
 });
+
+fastify.post("/streak", async (req, res) => {
+  const body = req.body as SlashCommandReqBody;
+  const user = await db.query.users.findFirst({
+    where: eq(users.userId, body.user_id)
+  })
+
+  if (!user) {
+    // do something and return
+    return
+  }
+
+  const url = "https://api.monkeytype.com/users/currentTestActivity";
+
+  let testsActivity = []
+
+  try {
+    const streakRes = await fetch(url, {
+      headers: { Authorization: `ApeKey ${user.apeKey}` }
+      })
+    testsActivity = (await streakRes.json() as any).data.testsByDays
+  } catch (e) {
+    // do something and return
+    return
+  }
+
+  if ((testsActivity as any[]).length <= 0) {
+    // do something and return
+    return
+  }
+
+  const requiredActivity = (testsActivity as any[]).slice(-105)
+  const max = Math.max(...requiredActivity.filter((x): x is number => x !== null))
+  console.log(max)
+  const range = max/4
+
+  // ⬜🟨🟧🟫🟥
+
+  let text = "";
+  requiredActivity.forEach((a, i) => {
+    if (i !== 0 && i % 7 === 0) {
+      text += " "
+    }
+    if (i !== 0 && i % 21 === 0) {
+      text += "\n"
+    }
+    if (a === 0 || a === null) {
+      text += "⬜"
+      return
+    }
+    if (a === 1) {
+      text += "🟨"
+      return
+    }
+    if (a <= max / 4) {
+      text += "🟨"
+      return
+    } else if (a <= (max / 4) * 2) {
+      text += "🟧"
+      return
+    } else if (a <= (max / 4) * 3) {
+      text += "🟫"
+      return
+    } else if (a <= (max / 4) * 4) {
+      text += "🟥"
+      return
+    }
+  })
+
+  console.log(text)
+
+})
+
 
 try {
   await fastify.listen({
