@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fastify/formbody": "^8.0.2",
+    "@slack/bolt": "^5.0.0",
     "@slack/web-api": "^7.19.0",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",

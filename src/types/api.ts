@@ -1,21 +1,3 @@
-export interface SlashCommandReqBody {
-  token: string;
-  team_id: string;
-  team_domain: string;
-  channel_id: string;
-  channel_name: string;
-  user_id: string;
-  user_name: string;
-  command: string;
-  text: string;
-  api_app_id: string;
-  is_enterprise_install: string;
-  enterprise_id: string;
-  enterprise_name: string;
-  response_url: string;
-  trigger_id: string;
-}
-
 export interface LastResult {
   data: {
     _id: string;
@@ -26,6 +8,7 @@ export interface LastResult {
     acc: number;
     mode: string;
     mode2: string;
+    language?: string;
     timestamp: number;
     testDuration: number;
     consistency: number;
@@ -45,4 +28,12 @@ export interface LastResult {
       sd: number;
     };
   };
+}
+
+export interface TestActivity {
+  message: string,
+  data: {
+    testsByDays: (number | null)[]
+    lastDay: number | null
+  }
 }

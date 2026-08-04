@@ -1,222 +1,261 @@
-import Fastify from "fastify";
-import formbody from "@fastify/formbody";
-const fastify = Fastify({
-  logger: true,
-});
-fastify.register(formbody);
+import { App } from "@slack/bolt";
+const slack = new App({
+  token: process.env.SLACK_BOT_TOKEN,
+  signingSecret: process.env.SLACK_SIGNING_SECRET
+})
 
 import { db } from "./db";
 import { users } from "./db/schema";
-import type { SlashCommandReqBody } from "./types/api";
+import type { LastResult, TestActivity } from "./types/api";
 import { eq } from "drizzle-orm";
 
-import {
-  createTextEl,
-  createButtonEl,
-  createTextOnlyMCQ,
-  replyToInteraction,
-  getNameFromLastTest,
-} from "./utils";
+import { getNameFromLastTest } from "./utils";
 
-import { WebClient, ErrorCode, type WebAPIPlatformError } from "@slack/web-api";
+import { WebClient } from "@slack/web-api";
 const client = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 import { formatInTimeZone } from "date-fns-tz";
 
-fastify.post("/interactivity", async (req, res) => {
-  const body = req.body as { payload: string };
-  const payload = JSON.parse(body.payload);
-  console.log(payload);
+slack.command("/setapekey", async ({ command, ack, respond }) => {
+  await ack();
 
-  if (payload.actions[0].action_id === "correct_username") {
-    const userExists = !!(await db.query.users.findFirst({
-      where: eq(users.userId, payload.user.id),
-    }));
-    if (userExists) {
-      const q = createTextEl(
-        "mrkdwn",
-        `an apekey associated with this user already exists. do you want to replace it? 🤔`,
-      );
-      const choices = [
-        createButtonEl("yep", "replace_apekey", payload.actions[0].value),
-        createButtonEl("nope", "dont_replace_apekey", payload.actions[0].value),
-      ];
-      const mcq = createTextOnlyMCQ(q, choices);
-
-      await replyToInteraction(
-        payload.response_url,
-        JSON.stringify({
-          replace_original: true,
-          text: "please use a normal slack client bruh",
-          blocks: mcq.blocks,
-        }),
-      );
-    } else {
-      await db
-        .insert(users)
-        .values({
-          userId: payload.user.id,
-          apeKey: JSON.parse(payload.actions[0].value).apeKey,
-          username: JSON.parse(payload.actions[0].value).username,
-        })
-        .onConflictDoUpdate({
-          target: users.userId,
-          set: {
-            apeKey: JSON.parse(payload.actions[0].value).apeKey,
-            username: JSON.parse(payload.actions[0].value).username,
-          },
-        });
-
-      await replyToInteraction(
-        payload.response_url,
-        JSON.stringify({
-          replace_original: true,
-          text: "wooo you're officially an ape now! 🐵",
-        }),
-      );
-    }
-  } else if (payload.actions[0].action_id === "incorrect_username") {
-    await replyToInteraction(
-      payload.response_url,
-      JSON.stringify({
-        replace_original: true,
-        text: "idk man that's the username associated with the apekey you provided 😒",
-      }),
-    );
-  } else if (payload.actions[0].action_id === "replace_apekey") {
-    await db
-      .insert(users)
-      .values({
-        userId: payload.user.id,
-        apeKey: JSON.parse(payload.actions[0].value).apeKey,
-        username: JSON.parse(payload.actions[0].value).username,
-      })
-      .onConflictDoUpdate({
-        target: users.userId,
-        set: {
-          apeKey: JSON.parse(payload.actions[0].value).apeKey,
-          username: JSON.parse(payload.actions[0].value).username,
-        },
-      });
-
-    await replyToInteraction(
-      payload.response_url,
-      JSON.stringify({
-        replace_original: true,
-        text: "replaced! 🐵",
-      }),
-    );
-  } else if (payload.actions[0].action_id === "dont_replace_apekey") {
-    await replyToInteraction(
-      payload.response_url,
-      JSON.stringify({
-        replace_original: true,
-        text: "i guess bro 🫩",
-      }),
-    );
-  } else if (payload.actions[0].action_id === "delete_apekey") {
-    await db.delete(users).where(eq(users.userId, payload.user.id));
-    await replyToInteraction(
-      payload.response_url,
-      JSON.stringify({
-        replace_original: true,
-        text: "you're no longer an ape 🦧",
-      }),
-    );
-  } else if (payload.actions[0].action_id === "cancel_delete_apekey") {
-    await replyToInteraction(
-      payload.response_url,
-      JSON.stringify({
-        replace_original: true,
-        text: "🦧",
-      }),
-    );
-  }
-  return {};
-});
-
-fastify.post("/setapekey", async (req, res) => {
-  const body = req.body as SlashCommandReqBody;
-  const apeKey = body.text.trim();
-
+  const apeKey = command.text.trim()
   const userName = await getNameFromLastTest(apeKey);
+
   if (!userName) {
-    return {
-      response_type: "ephemeral",
-      text: "invalid apekey 🙄",
-    };
+    await respond({
+      text: "invalid apekey 🙄"
+    })
+    return;
   }
 
-  const q = createTextEl("mrkdwn", `are you *${userName}* on monkeytype? 🤔`);
-  const choices = [
-    createButtonEl(
-      "yeah",
-      "correct_username",
-      JSON.stringify({
-        apeKey,
-        username: userName,
-      }),
-    ),
-    createButtonEl("uh no", "incorrect_username", apeKey),
-  ];
-  const mcq = createTextOnlyMCQ(q, choices);
+  await respond({
+    blocks: [
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `are you *${userName}* on monkeytype? 🤔`
+        }
+      }, {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "yeah"
+            },
+            action_id: "correct_username",
+            value: JSON.stringify({
+              apeKey,
+              username: userName
+            })
+          },
+          {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "uh no"
+            },
+            action_id: "incorrect_username",
+            value: apeKey
+          }
+        ]
+      }
+    ]
+  })
+})
 
-  return {
-    response_type: "ephemeral",
-    text: "please use a normal slack client bruh",
-    blocks: mcq.blocks,
-  };
-});
+slack.action("correct_username", async ({ ack, action, body, respond }) => {
+  await ack();
 
-fastify.post("/deleteapekey", async (req, res) => {
-  console.log("hi lol");
-  const body = req.body as SlashCommandReqBody;
-  const userId = body.user_id;
+  if (action.type != "button") return;
+  const data = await JSON.parse(action.value!)
+
   const userExists = !!(await db.query.users.findFirst({
-    where: eq(users.userId, userId),
-  }));
-  if (!userExists) {
-    return {
-      response_type: "ephemeral",
-      text: "how are you gonna delete an apekey when you haven't even set one 🫩",
-    };
-  }
-  const q = createTextEl(
-    "mrkdwn",
-    `once your apekey is deleted, you won't be able to use the bot until you add another apekey using \`/setapekey\`. do you still want to delete the apekey?`,
-  );
-  const choices = [
-    createButtonEl("yeah", "delete_apekey", "uh"),
-    createButtonEl("nah", "cancel_delete_apekey", "uh"),
-  ];
-  const mcq = createTextOnlyMCQ(q, choices);
-  return {
-    response_type: "ephemeral",
-    text: "please use a normal slack client bruh",
-    blocks: mcq.blocks,
-  };
-});
+    where: eq(users.userId, body.user.id)
+  }))
 
-fastify.post("/lastrun", async (req, res) => {
-  const body = req.body as SlashCommandReqBody;
+  if (userExists) {
+    await respond({
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "plain_text",
+            text: "an apekey associated with this user already exists. do you want to replace it? 🤔"
+          }
+        }, {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "yep",
+              },
+              action_id: "replace_apekey",
+              value: JSON.stringify(data)
+            },
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "nope",
+              },
+              action_id: "dont_replace_apekey",
+              value: JSON.stringify(data)
+            }
+          ]
+        }
+      ],
+      text: "please use a normal slack client bruh",
+      replace_original: true
+    })
+  } else {
+    await db.insert(users).values({
+      userId: body.user.id,
+      apeKey: data.apeKey,
+      username: data.username
+    }).onConflictDoUpdate({
+      target: users.userId,
+      set: {
+        apeKey: data.apeKey,
+        username: data.username
+      }
+    })
+
+    await respond({
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "plain_text",
+            text: "wooo you're officially an ape now! 🐵"
+          }
+        }
+      ],
+      text: "wooo you're officially an ape now! 🐵",
+      replace_original: true
+    })
+  }
+
+})
+slack.action("incorrect_username", async ({ ack, action, body, respond }) => {
+  await ack();
+  await respond({
+    text: "idk man that's the username associated with the apekey you provided 😒",
+    replace_original: true
+  })
+})
+slack.action("replace_apekey", async ({ ack, action, body, respond }) => {
+  await ack();
+  if (action.type != "button") return
+  const data = JSON.parse(action.value!)
+  await db.insert(users).values({
+    userId: body.user.id,
+    apeKey: data.apeKey,
+    username: data.username
+  }).onConflictDoUpdate({
+    target: users.userId,
+    set: {
+      apeKey: data.apeKey,
+      username: data.username
+    }
+  })
+
+  await respond({
+    replace_original: true,
+    text: "replaced! 🐵"
+  })
+})
+slack.action("dont_replace_apekey", async ({ ack, action, body, respond }) => {
+  await ack();
+  await respond({
+    replace_original: true,
+    text: "i guess bro 🫩"
+  })
+})
+
+slack.command("/deleteapekey", async ({ command, ack, body, respond }) => {
+  await ack();
+  const userExists = !!(await db.query.users.findFirst({
+    where: eq(users.userId, body.user_id)
+  }))
+  if (!userExists) {
+    await respond({
+      text: "how are you gonna delete an apekey when you haven't even set one 🫩"
+    })
+    return;
+  }
+  await respond({
+    blocks: [
+      {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `once your apekey is deleted, you won't be able to use the bot until you add another apekey using \`/setapekey\`. do you still want to delete the apekey?`
+      }
+      },
+      {
+      type: "actions",
+      elements: [
+        {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: "yuh"
+          },
+          action_id: "delete_apekey",
+          value: "uh"
+        }, {
+          type: "button",
+          text: {
+            type: "plain_text",
+            text: "nuh"
+          },
+          action_id: "cancel_delete_apekey",
+          value: "uh"
+        }
+      ]
+      }],
+    text: "please use a normal slack client bruh"
+  })
+})
+
+slack.action("delete_apekey", async ({ ack, action, body, respond }) => {
+  await db.delete(users).where(eq(users.userId, body.user.id));
+  await respond({
+    replace_original: true,
+    text: "you're no longer an ape 🦧"
+  })
+})
+slack.action("cancel_delete_apekey", async ({ ack, action, body, respond }) => {
+  await respond({
+    replace_original: true,
+    text: "🦧"
+  })
+})
+
+slack.command("/lastrun", async ({ command, ack, body, respond }) => {
+  await ack();
   const user = await db.query.users.findFirst({
     where: eq(users.userId, body.user_id),
   });
 
   if (!user) {
-    return {
-      response_type: "ephemeral",
+    await respond({
       text: "no idea who you are. use /setapekey to register 🐒",
-      blocks: [
-        {
-          type: "section",
-          text: createTextEl(
-            "mrkdwn",
-            `no idea who you are. use \`/setapekey\` to register 🐒`,
-          ),
-        },
-      ],
-    };
+      blocks: [{
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `no idea who you are. use \`/setapekey\` to register 🐒`
+        }
+      }]
+    })
+    return;
   }
 
   const url = `https://api.monkeytype.com/results/last`;
@@ -226,46 +265,23 @@ fastify.post("/lastrun", async (req, res) => {
   });
 
   if (response.status != 200) {
-    return {
-      response_type: "ephemeral",
+    await respond({
       text: "request failed. you might wanna set a new apekey with /setapekey 🐒",
       blocks: [
         {
           type: "section",
-          text: createTextEl(
-            "mrkdwn",
-            `request failed. you might wanna set a new apekey with \`/setapekey\` 🐒`,
-          ),
-        },
-      ],
-    };
+          text: {
+            type: "mrkdwn",
+            text: `request failed. you might wanna set a new apekey with \`/setapekey\` 🐒`
+          }
+        }
+      ]
+    })
   }
 
   const barebonesData = await response.json();
 
-  console.log(barebonesData);
-
-  const data = (
-    barebonesData as {
-      data: {
-        wpm: number;
-        acc: number;
-        timestamp: number;
-        rawWpm: number;
-        mode: string;
-        mode2: string;
-        testDuration: number;
-        charStats: number[];
-        consistency: number;
-        chartData: {
-          wpm: number[];
-          burst: number[];
-          err: number[];
-        };
-        language: string;
-      };
-    }
-  ).data;
+  const data = (barebonesData as LastResult).data
 
   const d = formatInTimeZone(
     data.timestamp,
@@ -276,7 +292,7 @@ fastify.post("/lastrun", async (req, res) => {
   try {
     await client.chat.postMessage({
       channel: body.channel_id,
-      text: "hi lol 🦧",
+      text: "test results",
       blocks: [
         {
           type: "header",
@@ -341,100 +357,53 @@ fastify.post("/lastrun", async (req, res) => {
           ],
         },
       ],
-    });
-    res.code(200).send();
-    return;
-  } catch (e) {
-    if (
-      e &&
-      typeof e === "object" &&
-      "code" in e &&
-      e.code === ErrorCode.PlatformError
-    ) {
-      const err = e as WebAPIPlatformError;
-
-      if (err.data.error === "channel_not_found") {
-        return {
-          response_type: "ephemeral",
-          text: "add me in the channel to run this 🐵",
-        };
-      }
-
-      console.log(err.data.error);
-      console.log(err.data.response_metadata);
-    } else {
-      console.error(e);
+    })
+  } catch (err) {
+    const e = err as {
+      code?: string;
+      data?: { error?: string };
+      message?: string;
     }
+
+    if (e.code === "slack_webapi_platform_error" && e.data?.error === "channel_not_found") {
+      await respond({
+        text: "add me in the channel to run this 🐵"
+      })
+      return;
+    }
+
+    console.error(e)
+
   }
 
-  return {};
-});
+})
 
-fastify.post("/streak", async (req, res) => {
-  const body = req.body as SlashCommandReqBody;
+slack.command("/activity", async ({ command, ack, body, respond }) => {
+  await ack();
   const user = await db.query.users.findFirst({
-    where: eq(users.userId, body.user_id)
-  })
+    where: eq(users.userId, body.user_id),
+  });
 
   if (!user) {
-    return {
-      response_type: "ephemeral",
-      text: "no idea who you are. use /setapekey to register 🐵",
-      blocks: [
-        {
-          type: "section",
-          text: createTextEl(
-            "mrkdwn",
-            `no idea who you are. use \`/setapekey\` to register 🐒`
-          )
+    await respond({
+      text: "no idea who you are. use /setapekey to register 🐒",
+      blocks: [{
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `no idea who you are. use \`/setapekey\` to register 🐒`
         }
-      ]
-    }
+      }]
+    })
+    return;
   }
 
   const url = "https://api.monkeytype.com/users/currentTestActivity";
+  const streakRes = await fetch(url, { headers: { Authorization: `ApeKey ${user.apeKey}` } })
 
-  let testsActivity = []
+  const testsActivity = (await streakRes.json() as TestActivity).data.testsByDays
 
-  try {
-    const streakRes = await fetch(url, {
-      headers: { Authorization: `ApeKey ${user.apeKey}` }
-      })
-    testsActivity = (await streakRes.json() as any).data.testsByDays
-  } catch (e) {
-    return {
-      response_type: "ephemeral",
-      text: "something didn't work. try again. 🦧",
-      blocks: [
-        {
-          type: "section",
-          text: createTextEl(
-            "plain_text",
-            "something didn't work. try again. 🦧"
-          )
-        }
-      ]
-    }
-  }
-
-  if ((testsActivity as any[]).length <= 0) {
-    return {
-      response_type: "ephemeral",
-      text: "seems like you haven't given any tests? 🦧",
-      blocks: [
-        {
-          type: "section",
-          text: createTextEl(
-            "plain_text",
-            "seems like you haven't given any tests? 🦧"
-          )
-        }
-      ]
-    }
-  }
-
-  const requiredActivity = (testsActivity as any[]).slice(-105)
-  // ⬜🟨🟧🟫🟥
+  const requiredActivity = (testsActivity).slice(-105)
 
   let text = "";
   requiredActivity.forEach((a, i) => {
@@ -464,28 +433,23 @@ fastify.post("/streak", async (req, res) => {
     }
   })
 
-  return {
-    response_type: "",
-    text: "streak",
-    blocks: [
-      {
-        type: "section",
-        text: createTextEl(
-          "mrkdwn",
-          `\`\`\`${text}\`\`\``
-        )
-      },
-    ]
-  }
-
+  await client.chat.postMessage({
+    channel: body.channel_id,
+    text: "activity",
+    blocks: [{
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `\`\`\`${text}\`\`\``
+      }
+    }]
+  })
 })
 
 
 try {
-  await fastify.listen({
-    port: 3000,
-  });
+  await slack.start(3000)
 } catch (err) {
-  fastify.log.error(err);
-  process.exit(1);
+  console.log(err)
+  process.exit(1)
 }
