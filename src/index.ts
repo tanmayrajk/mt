@@ -403,15 +403,30 @@ slack.command("/activity", async ({ command, ack, body, respond }) => {
 
   const testsActivity = (await streakRes.json() as TestActivity).data.testsByDays
 
+  const today = new Date()
+
+  let startDay = new Date(today)
+  startDay.setDate(startDay.getDate() - 105)
+
   const requiredActivity = (testsActivity).slice(-105)
 
-  let text = "";
+  let text = `${startDay.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  })} -> `;
   requiredActivity.forEach((a, i) => {
     if (i !== 0 && i % 7 === 0) {
       text += "  "
     }
     if (i !== 0 && i % 21 === 0) {
       text += "\n"
+      const spaces = " ".repeat(today.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }).length + 4)
+      text += spaces
     }
     if (a === 0 || a === null) {
       text += "⬜"
@@ -433,6 +448,12 @@ slack.command("/activity", async ({ command, ack, body, respond }) => {
     }
   })
 
+  text += ` <- ${today.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  })}`
+
   await client.chat.postMessage({
     channel: body.channel_id,
     text: "activity",
@@ -442,10 +463,19 @@ slack.command("/activity", async ({ command, ack, body, respond }) => {
         type: "mrkdwn",
         text: `\`\`\`${text}\`\`\``
       }
+    }, {
+      type: "divider"
+      }, {
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `monkeytype activity graph for <@${user.userId}>  |  less ⬜🟨🟧🟫🟥 more  |  reads left to right`
+        }
+      ]
     }]
   })
 })
-
 
 try {
   await slack.start(3000)
