@@ -10,24 +10,23 @@ const chartData = {
   ],
 }
 
-const minWpm = Math.min(...chartData.wpm)
+// const minWpm = Math.min(...chartData.wpm)
 const maxWpm = Math.max(...chartData.wpm)
-const maxMinDiff = maxWpm - minWpm;
+// const maxMinDiff = maxWpm - minWpm;
 
-const ranksCount = 7
-const rankDivision = (maxMinDiff / ranksCount)
+const ranksCount = 4
+const rankDivision = (maxWpm / ranksCount)
 
-const ranks = [rankDivision, rankDivision * 2, rankDivision * 3, rankDivision * 4, rankDivision * 5, rankDivision * 6, rankDivision * 7]
+const ranks = [rankDivision, rankDivision * 2, rankDivision * 3, rankDivision * 4]
 let wpmWeightedByRanks: { wpm: number, rank: number }[] = []
 
 // console.log(ranks)
 
 chartData.wpm.forEach(wpm => {
-  const diff = wpm - minWpm;
   let rank = 0
   let rankDiff: number[] = []
   ranks.forEach(rank => {
-    rankDiff.push(Math.abs(diff - rank))
+    rankDiff.push(Math.abs(wpm - rank))
   })
   rank = rankDiff.indexOf(Math.min(...rankDiff))
   // console.log(rankDiff, rank, wpm, diff)
@@ -36,18 +35,26 @@ chartData.wpm.forEach(wpm => {
   })
 })
 
+// console.log(wpmWeightedByRanks)
+
 
 function generateGraph() {
   let text = ""
   for (let i = 0; i < ranksCount; i++) {
+    text += `${ranks.toReversed()[i]?.toString().padStart(3, " ")} ┫`
     for (let j = 0; j < wpmWeightedByRanks.length; j++) {
       if (wpmWeightedByRanks[j]?.rank === (ranksCount - 1) - i) {
-        text += "*  "
+        j+1 === wpmWeightedByRanks.length ? text += "   *   " : text += "   *"
       } else {
-        text += "   "
+        j+1 === wpmWeightedByRanks.length ? text += "       " : text += "    "
       }
     }
-    text += "\n"
+    text += "┣\n"
+  }
+  text += `${"0".padStart(3, " ")} ╋` + "━━━┳".repeat(wpmWeightedByRanks.length) + "━━━" + "╋"
+  text += "\n     "
+  for (let i = 0; i < 15; i++) {
+    text += `  ${(i+1).toString().padStart(2, " ")}`
   }
   return text
 }
