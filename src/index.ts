@@ -281,6 +281,8 @@ slack.command("/lastrun", async ({ command, ack, body, respond }) => {
 
   const barebonesData = await response.json();
 
+  console.log(barebonesData)
+
   const data = (barebonesData as LastResult).data
 
   const d = formatInTimeZone(
@@ -306,14 +308,7 @@ slack.command("/lastrun", async ({ command, ack, body, respond }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*mode*: ${data.mode} ${data.mode2}`,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `*language*: ${data.language ? data.language : "english"}`,
+            text: `*test type*: ${data.mode} ${data.mode2} ${data.numbers ? "numbers" : ""} ${data.punctuation ? "punctuation" : ""} ${data.language ? data.language : "english"}`,
           },
         },
         {

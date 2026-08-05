@@ -9,6 +9,9 @@ export interface LastResult {
     mode: string;
     mode2: string;
     language?: string;
+    punctuation?: boolean;
+    numbers?: boolean;
+    isPb?: boolean;
     timestamp: number;
     testDuration: number;
     consistency: number;
