@@ -17,7 +17,7 @@ mt is a slack bot for monkeytype. currently it allows five commands in total:
 ## how to use?
 
 - go to [https://monkeytype.com/account-settings?tab=apeKeys](https://monkeytype.com/account-settings?tab=apeKeys) and create an apekey (don't forget to enable it!).
-- go on slack and use `/setapekey` to set your api key.
+- go on slack and use `/setapekey` to set your api key. (if you get the `failed with the error "operation_timeout"` error, wait for a few seconds for render to spin up the server again)
 - try `/deleteapekey`, `/lastrun`, `/activity` or `/leaderboard`.
 
 ---
