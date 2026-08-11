@@ -4,7 +4,7 @@
 
 ## what is it?
 
-mt is a slack bot for monkeytype. currently it allows five commands in total:
+mt is a slack bot for monkeytype written in typescript/bun using the slack bolt sdk. currently it allows five commands in total:
 
 - `/setapekey` sets/updates the api key
 - `/deleteapekey` deletes the api key associated with your user
@@ -36,7 +36,7 @@ mt is a slack bot for monkeytype. currently it allows five commands in total:
 
 ## misc
 
-the app is currently hosted on the a free render tier at [https://mt-34q3.onrender.com](https://mt-34q3.onrender.com). that means that the sqlite3 database will be cleared out everytime the server resets (which would be very common). ideally i would either separate the db from the server or use a server that wouldn't turn off on inactivity, but for now this is all you get 😔.
+the app is currently hosted on a free render tier at [https://mt-34q3.onrender.com](https://mt-34q3.onrender.com). that means that the sqlite3 database will be cleared out everytime the server resets (which would be very common). ideally i would either separate the db from the server or use a server that wouldn't turn off on inactivity, but for now this is all you get 😔.
 
 ---
 
