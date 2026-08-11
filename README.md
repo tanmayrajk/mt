@@ -4,7 +4,7 @@
 
 ## what is it?
 
-mt is a slack bot for monkeytype written in typescript/bun using the slack bolt sdk. currently it allows five commands in total:
+mt is a slack bot for monkeytype. currently it allows five commands in total:
 
 - `/setapekey` sets/updates the api key
 - `/deleteapekey` deletes the api key associated with your user
@@ -22,6 +22,12 @@ mt is a slack bot for monkeytype written in typescript/bun using the slack bolt 
 
 ---
 
+## how does it work?
+
+the bot uses the [monkeytype api](https://api.monkeytype.com/docs) to get all its info about the users. initially it was put together with a lot of fetch and fastify endpoints for every command and action. but then later i switched to slack's bolt sdk which makes the job SO MUCH easier. the current stack is typescript for all the code and bun for the runtime environment. it's currently hosted on a free render tier at [https://mt-34q3.onrender.com](https://mt-34q3.onrender.com). this means that the sqlite3 database will be cleared out everytime the server resets (which would be very common). ideally i would either separate the db from the server or use a server that wouldn't turn off on inactivity, but for now this is all you get 😔.
+
+---
+
 ## how to build?
 
 - create a slack app.
@@ -31,12 +37,6 @@ mt is a slack bot for monkeytype written in typescript/bun using the slack bolt 
 - enable interactivity and set the request url to `{thehosturl}/slack/events` as well.
 - to build the thing first do a `bun install`.
 - then run the thing with `bun run start`.
-
----
-
-## misc
-
-the app is currently hosted on a free render tier at [https://mt-34q3.onrender.com](https://mt-34q3.onrender.com). that means that the sqlite3 database will be cleared out everytime the server resets (which would be very common). ideally i would either separate the db from the server or use a server that wouldn't turn off on inactivity, but for now this is all you get 😔.
 
 ---
 
