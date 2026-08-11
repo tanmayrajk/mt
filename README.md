@@ -16,14 +16,22 @@ mt is a slack bot for monkeytype. currently it allows five commands in total:
 
 ## how to use?
 
-just go on slack and use `/setapekey` to set your api key. should be straightforward from thereon.
+- go to [https://monkeytype.com/account-settings?tab=apeKeys](https://monkeytype.com/account-settings?tab=apeKeys) and create an apekey (don't forget to enable it!).
+- go on slack and use `/setapekey` to set your api key.
+- try `/deleteapekey`, `/lastrun`, `/activity` or `/leaderboard`.
 
 ---
 
 ## how to build?
 
-there isn't much building rn. just copy the repo, do a `bun install` and run it with `bun src/index.ts`. keep in mind tho that you'll have to create a slack app for it and set the respective slash commands and set the url for each of those commands. for the url im currently using ngrok.
+- create a slack app.
+- add the following bot token scopes: `chat:write`, `chat:write.public`, `commands` and `groups:write` and install the bot in the org.
+- then create a `.env` file and add the variables `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
+- add all the commands listed in the "what is it" section of the readme in your slack app and set their url to `{thehosturl}/slack/events`.
+- enable interactivity and set the request url to `{thehosturl}/slack/events` as well.
+- to build the thing first do a `bun install`.
+- then run the thing with `bun run start`.
 
 ## ai usage
 
-ai is occasionally used by which i mean i just asked chatgpt/claude sometimes. no ai autocompletion was used as i keep it turned off.
+ai was occasionally used, by which i mean i just asked chatgpt/claude sometimes. no ai autocompletion was used as i keep it turned off.
