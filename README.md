@@ -1,5 +1,7 @@
 # mt
 
+![screenshot](screenshot.png)
+
 ## what is it?
 
 mt is a slack bot for monkeytype. currently it allows five commands in total:
