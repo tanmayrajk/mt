@@ -12,12 +12,12 @@ mt is a slack bot for monkeytype. currently it allows five commands in total:
 
 ---
 
-# how to use?
+## how to use?
 
 just go on slack and use `/setapekey` to set your api key. should be straightforward from thereon.
 
 ---
 
-# how to build?
+## how to build?
 
 there isn't much building rn. just copy the repo, do a `bun install` and run it with `bun src/index.ts`. keep in mind tho that you'll have to create a slack app for it and set the respective slash commands and set the url for each of those commands. for the url im currently using ngrok.
