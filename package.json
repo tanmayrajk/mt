@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "heroku-postbuild": "curl -fsSL https://bun.sh/install | bash"
+    "start": "bun run src/index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@fastify/formbody": "^8.0.2",
-    "@slack/bolt": "^5.0.0",
-    "@slack/web-api": "^7.19.0",
+    "@Slack/bolt": "^5.0.0",
+    "@Slack/web-api": "^7.19.0",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
     "drizzle-orm": "^0.45.2",
