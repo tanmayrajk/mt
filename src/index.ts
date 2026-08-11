@@ -644,7 +644,10 @@ slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
 });
 
 try {
-  await slack.start(3000);
+  await slack.start({
+    port: Number(process.env.PORT) || 3000,
+    host: "0.0.0.0",
+  });
 } catch (err) {
   console.log(err);
   process.exit(1);
