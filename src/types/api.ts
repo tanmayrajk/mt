@@ -34,9 +34,22 @@ export interface LastResult {
 }
 
 export interface TestActivity {
-  message: string,
+  message: string;
   data: {
-    testsByDays: (number | null)[]
-    lastDay: number | null
-  }
+    testsByDays: (number | null)[];
+    lastDay: number | null;
+  };
+}
+
+export interface LeaderboardRank {
+  message: string;
+  data: {
+    wpm: number;
+    acc: number;
+    timestamp: number;
+    raw: number;
+    consistency: number;
+    name: string;
+    rank: number;
+  } | null;
 }

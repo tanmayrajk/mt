@@ -6,8 +6,8 @@ const slack = new App({
 
 import { db } from "./db";
 import { users } from "./db/schema";
-import type { LastResult, TestActivity } from "./types/api";
-import { eq } from "drizzle-orm";
+import type { LastResult, LeaderboardRank, TestActivity } from "./types/api";
+import { eq, isNotNull } from "drizzle-orm";
 
 import { getNameFromLastTest } from "./utils";
 
@@ -501,6 +501,146 @@ slack.command("/activity", async ({ command, ack, body, respond }) => {
       },
     ],
   });
+});
+
+slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
+  await ack();
+  const user = await db.query.users.findFirst({
+    where: eq(users.userId, body.user_id),
+  });
+
+  if (!user) {
+    await respond({
+      text: "no idea who you are. use /setapekey to register 🐒",
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `no idea who you are. use \`/setapekey\` to register 🐒`,
+          },
+        },
+      ],
+    });
+    return;
+  }
+
+  const mode = body.text.split(" ")[0]?.trim() || "";
+  const mode2 = Number.isInteger(Number(body.text.split(" ")[1]?.trim()))
+    ? Number(body.text.split(" ")[1]?.trim()).toString()
+    : mode === "words"
+      ? "50"
+      : "15";
+
+  if (!["words", "time"].includes(mode)) {
+    await respond({
+      text: "add 'word' or 'time' after the command to get the respective leaderboard",
+    });
+    return;
+  }
+
+  const url = `https://api.monkeytype.com/leaderboards/rank?language=english&mode=${mode}&mode2=${mode2}`;
+  const allUsers = await db.query.users.findMany({
+    where: isNotNull(users.apeKey),
+  });
+
+  let leaderboardData = [];
+
+  for (let i = 0; i < allUsers.length; i++) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `ApeKey ${allUsers[i]?.apeKey}`,
+        },
+      });
+
+      if (!res.ok) {
+        console.log("bye lol");
+        continue;
+      }
+      const data = (await res.json()) as LeaderboardRank;
+      if (data.data === null) continue;
+      leaderboardData.push({
+        userId: allUsers[i]?.userId,
+        rank: data.data.rank,
+        wpm: Math.round(data.data.wpm),
+        acc: Math.round(data.data.acc),
+        name: data.data.name,
+      });
+    } catch (e) {
+      console.log(e);
+      continue;
+    }
+  }
+
+  if (leaderboardData.length <= 0) {
+    await respond({
+      text: "no user in the database is in the leaderboards for that specific test. try again with a different test.",
+    });
+    return;
+  }
+
+  leaderboardData.sort((a, b) => a.rank - b.rank);
+
+  const leaderboardBlocks = leaderboardData.map((u, i) => {
+    return {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `${i + 1}. *<@${u.userId}>* — ${u.wpm}WPM / ${u.acc}%\n`,
+      },
+    };
+  });
+
+  try {
+    await client.chat.postMessage({
+      blocks: [
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: `leaderboard for ${mode} ${mode2}`,
+          },
+          level: 1,
+        } as any,
+        ...leaderboardBlocks,
+        {
+          type: "divider",
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `\`/leaderboard\` run by <@${body.user_id}`,
+            },
+          ],
+        },
+      ],
+      text: `leaderboard for ${mode} ${mode2}`,
+      channel: body.channel_id,
+    });
+  } catch (err) {
+    const e = err as {
+      code?: string;
+      data?: { error?: string };
+      message?: string;
+    };
+
+    if (
+      e.code === "slack_webapi_platform_error" &&
+      e.data?.error === "channel_not_found"
+    ) {
+      await respond({
+        text: "add me in the channel to run this 🐵",
+      });
+      return;
+    }
+
+    console.error(e);
+  }
+
+  console.log(leaderboardData);
 });
 
 try {
