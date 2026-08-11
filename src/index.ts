@@ -1,8 +1,8 @@
 import { App } from "@slack/bolt";
 const slack = new App({
   token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET
-})
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
+});
 
 import { db } from "./db";
 import { users } from "./db/schema";
@@ -15,17 +15,18 @@ import { WebClient } from "@slack/web-api";
 const client = new WebClient(process.env.SLACK_BOT_TOKEN);
 
 import { formatInTimeZone } from "date-fns-tz";
+import { generateGraphLikeABigBoy } from "./graph";
 
 slack.command("/setapekey", async ({ command, ack, respond }) => {
   await ack();
 
-  const apeKey = command.text.trim()
+  const apeKey = command.text.trim();
   const userName = await getNameFromLastTest(apeKey);
 
   if (!userName) {
     await respond({
-      text: "invalid apekey 🙄"
-    })
+      text: "invalid apekey 🙄",
+    });
     return;
   }
 
@@ -35,47 +36,48 @@ slack.command("/setapekey", async ({ command, ack, respond }) => {
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `are you *${userName}* on monkeytype? 🤔`
-        }
-      }, {
+          text: `are you *${userName}* on monkeytype? 🤔`,
+        },
+      },
+      {
         type: "actions",
         elements: [
           {
             type: "button",
             text: {
               type: "plain_text",
-              text: "yeah"
+              text: "yeah",
             },
             action_id: "correct_username",
             value: JSON.stringify({
               apeKey,
-              username: userName
-            })
+              username: userName,
+            }),
           },
           {
             type: "button",
             text: {
               type: "plain_text",
-              text: "uh no"
+              text: "uh no",
             },
             action_id: "incorrect_username",
-            value: apeKey
-          }
-        ]
-      }
-    ]
-  })
-})
+            value: apeKey,
+          },
+        ],
+      },
+    ],
+  });
+});
 
 slack.action("correct_username", async ({ ack, action, body, respond }) => {
   await ack();
 
   if (action.type != "button") return;
-  const data = await JSON.parse(action.value!)
+  const data = await JSON.parse(action.value!);
 
   const userExists = !!(await db.query.users.findFirst({
-    where: eq(users.userId, body.user.id)
-  }))
+    where: eq(users.userId, body.user.id),
+  }));
 
   if (userExists) {
     await respond({
@@ -84,9 +86,10 @@ slack.action("correct_username", async ({ ack, action, body, respond }) => {
           type: "section",
           text: {
             type: "plain_text",
-            text: "an apekey associated with this user already exists. do you want to replace it? 🤔"
-          }
-        }, {
+            text: "an apekey associated with this user already exists. do you want to replace it? 🤔",
+          },
+        },
+        {
           type: "actions",
           elements: [
             {
@@ -96,7 +99,7 @@ slack.action("correct_username", async ({ ack, action, body, respond }) => {
                 text: "yep",
               },
               action_id: "replace_apekey",
-              value: JSON.stringify(data)
+              value: JSON.stringify(data),
             },
             {
               type: "button",
@@ -105,26 +108,29 @@ slack.action("correct_username", async ({ ack, action, body, respond }) => {
                 text: "nope",
               },
               action_id: "dont_replace_apekey",
-              value: JSON.stringify(data)
-            }
-          ]
-        }
+              value: JSON.stringify(data),
+            },
+          ],
+        },
       ],
       text: "please use a normal slack client bruh",
-      replace_original: true
-    })
+      replace_original: true,
+    });
   } else {
-    await db.insert(users).values({
-      userId: body.user.id,
-      apeKey: data.apeKey,
-      username: data.username
-    }).onConflictDoUpdate({
-      target: users.userId,
-      set: {
+    await db
+      .insert(users)
+      .values({
+        userId: body.user.id,
         apeKey: data.apeKey,
-        username: data.username
-      }
-    })
+        username: data.username,
+      })
+      .onConflictDoUpdate({
+        target: users.userId,
+        set: {
+          apeKey: data.apeKey,
+          username: data.username,
+        },
+      });
 
     await respond({
       blocks: [
@@ -132,111 +138,115 @@ slack.action("correct_username", async ({ ack, action, body, respond }) => {
           type: "section",
           text: {
             type: "plain_text",
-            text: "wooo you're officially an ape now! 🐵"
-          }
-        }
+            text: "wooo you're officially an ape now! 🐵",
+          },
+        },
       ],
       text: "wooo you're officially an ape now! 🐵",
-      replace_original: true
-    })
+      replace_original: true,
+    });
   }
-
-})
+});
 slack.action("incorrect_username", async ({ ack, action, body, respond }) => {
   await ack();
   await respond({
     text: "idk man that's the username associated with the apekey you provided 😒",
-    replace_original: true
-  })
-})
+    replace_original: true,
+  });
+});
 slack.action("replace_apekey", async ({ ack, action, body, respond }) => {
   await ack();
-  if (action.type != "button") return
-  const data = JSON.parse(action.value!)
-  await db.insert(users).values({
-    userId: body.user.id,
-    apeKey: data.apeKey,
-    username: data.username
-  }).onConflictDoUpdate({
-    target: users.userId,
-    set: {
+  if (action.type != "button") return;
+  const data = JSON.parse(action.value!);
+  await db
+    .insert(users)
+    .values({
+      userId: body.user.id,
       apeKey: data.apeKey,
-      username: data.username
-    }
-  })
+      username: data.username,
+    })
+    .onConflictDoUpdate({
+      target: users.userId,
+      set: {
+        apeKey: data.apeKey,
+        username: data.username,
+      },
+    });
 
   await respond({
     replace_original: true,
-    text: "replaced! 🐵"
-  })
-})
+    text: "replaced! 🐵",
+  });
+});
 slack.action("dont_replace_apekey", async ({ ack, action, body, respond }) => {
   await ack();
   await respond({
     replace_original: true,
-    text: "i guess bro 🫩"
-  })
-})
+    text: "i guess bro 🫩",
+  });
+});
 
 slack.command("/deleteapekey", async ({ command, ack, body, respond }) => {
   await ack();
   const userExists = !!(await db.query.users.findFirst({
-    where: eq(users.userId, body.user_id)
-  }))
+    where: eq(users.userId, body.user_id),
+  }));
   if (!userExists) {
     await respond({
-      text: "how are you gonna delete an apekey when you haven't even set one 🫩"
-    })
+      text: "how are you gonna delete an apekey when you haven't even set one 🫩",
+    });
     return;
   }
   await respond({
     blocks: [
       {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `once your apekey is deleted, you won't be able to use the bot until you add another apekey using \`/setapekey\`. do you still want to delete the apekey?`
-      }
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `once your apekey is deleted, you won't be able to use the bot until you add another apekey using \`/setapekey\`. do you still want to delete the apekey?`,
+        },
       },
       {
-      type: "actions",
-      elements: [
-        {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "yuh"
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "yuh",
+            },
+            action_id: "delete_apekey",
+            value: "uh",
           },
-          action_id: "delete_apekey",
-          value: "uh"
-        }, {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "nuh"
+          {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "nuh",
+            },
+            action_id: "cancel_delete_apekey",
+            value: "uh",
           },
-          action_id: "cancel_delete_apekey",
-          value: "uh"
-        }
-      ]
-      }],
-    text: "please use a normal slack client bruh"
-  })
-})
+        ],
+      },
+    ],
+    text: "please use a normal slack client bruh",
+  });
+});
 
 slack.action("delete_apekey", async ({ ack, action, body, respond }) => {
   await db.delete(users).where(eq(users.userId, body.user.id));
   await respond({
     replace_original: true,
-    text: "you're no longer an ape 🦧"
-  })
-})
+    text: "you're no longer an ape 🦧",
+  });
+});
 slack.action("cancel_delete_apekey", async ({ ack, action, body, respond }) => {
   await respond({
     replace_original: true,
-    text: "🦧"
-  })
-})
+    text: "🦧",
+  });
+});
 
 slack.command("/lastrun", async ({ command, ack, body, respond }) => {
   await ack();
@@ -247,14 +257,16 @@ slack.command("/lastrun", async ({ command, ack, body, respond }) => {
   if (!user) {
     await respond({
       text: "no idea who you are. use /setapekey to register 🐒",
-      blocks: [{
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `no idea who you are. use \`/setapekey\` to register 🐒`
-        }
-      }]
-    })
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `no idea who you are. use \`/setapekey\` to register 🐒`,
+          },
+        },
+      ],
+    });
     return;
   }
 
@@ -272,18 +284,18 @@ slack.command("/lastrun", async ({ command, ack, body, respond }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `request failed. you might wanna set a new apekey with \`/setapekey\` 🐒`
-          }
-        }
-      ]
-    })
+            text: `request failed. you might wanna set a new apekey with \`/setapekey\` 🐒`,
+          },
+        },
+      ],
+    });
   }
 
   const barebonesData = await response.json();
 
-  console.log(barebonesData)
+  console.log(barebonesData);
 
-  const data = (barebonesData as LastResult).data
+  const data = (barebonesData as LastResult).data;
 
   const d = formatInTimeZone(
     data.timestamp,
@@ -308,7 +320,7 @@ slack.command("/lastrun", async ({ command, ack, body, respond }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `*test type*: ${data.mode} ${data.mode2} ${data.numbers ? "numbers" : ""} ${data.punctuation ? "punctuation" : ""} ${data.language ? data.language : "english"}`,
+            text: `*test type*: ${data.mode} ${data.mode2}${data.numbers ? " numbers" : ""}${data.punctuation ? " punctuation" : ""}${data.language ? " " + data.language : " english"}`,
           },
         },
         {
@@ -340,6 +352,13 @@ slack.command("/lastrun", async ({ command, ack, body, respond }) => {
           },
         },
         {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `\`\`\`${generateGraphLikeABigBoy(data.chartData.wpm)}\`\`\``,
+          },
+        },
+        {
           type: "divider",
         },
         {
@@ -352,26 +371,27 @@ slack.command("/lastrun", async ({ command, ack, body, respond }) => {
           ],
         },
       ],
-    })
+    });
   } catch (err) {
     const e = err as {
       code?: string;
       data?: { error?: string };
       message?: string;
-    }
+    };
 
-    if (e.code === "slack_webapi_platform_error" && e.data?.error === "channel_not_found") {
+    if (
+      e.code === "slack_webapi_platform_error" &&
+      e.data?.error === "channel_not_found"
+    ) {
       await respond({
-        text: "add me in the channel to run this 🐵"
-      })
+        text: "add me in the channel to run this 🐵",
+      });
       return;
     }
 
-    console.error(e)
-
+    console.error(e);
   }
-
-})
+});
 
 slack.command("/activity", async ({ command, ack, body, respond }) => {
   await ack();
@@ -382,99 +402,110 @@ slack.command("/activity", async ({ command, ack, body, respond }) => {
   if (!user) {
     await respond({
       text: "no idea who you are. use /setapekey to register 🐒",
-      blocks: [{
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `no idea who you are. use \`/setapekey\` to register 🐒`
-        }
-      }]
-    })
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `no idea who you are. use \`/setapekey\` to register 🐒`,
+          },
+        },
+      ],
+    });
     return;
   }
 
   const url = "https://api.monkeytype.com/users/currentTestActivity";
-  const streakRes = await fetch(url, { headers: { Authorization: `ApeKey ${user.apeKey}` } })
+  const streakRes = await fetch(url, {
+    headers: { Authorization: `ApeKey ${user.apeKey}` },
+  });
 
-  const testsActivity = (await streakRes.json() as TestActivity).data.testsByDays
+  const testsActivity = ((await streakRes.json()) as TestActivity).data
+    .testsByDays;
 
-  const today = new Date()
+  const today = new Date();
 
-  let startDay = new Date(today)
-  startDay.setDate(startDay.getDate() - 105)
+  let startDay = new Date(today);
+  startDay.setDate(startDay.getDate() - 105);
 
-  const requiredActivity = (testsActivity).slice(-105)
+  const requiredActivity = testsActivity.slice(-105);
 
   let text = `${startDay.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short",
-    year: "numeric"
+    year: "numeric",
   })} -> `;
   requiredActivity.forEach((a, i) => {
     if (i !== 0 && i % 7 === 0) {
-      text += "  "
+      text += "  ";
     }
     if (i !== 0 && i % 21 === 0) {
-      text += "\n"
-      const spaces = " ".repeat(today.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }).length + 4)
-      text += spaces
+      text += "\n";
+      const spaces = " ".repeat(
+        today.toLocaleDateString("en-US", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }).length + 4,
+      );
+      text += spaces;
     }
     if (a === 0 || a === null) {
-      text += "⬜"
-      return
+      text += "⬜";
+      return;
     }
 
     if (a <= 3) {
-      text += "🟨"
-      return
+      text += "🟨";
+      return;
     } else if (a <= 6) {
-      text += "🟧"
-      return
+      text += "🟧";
+      return;
     } else if (a <= 9) {
-      text += "🟫"
-      return
+      text += "🟫";
+      return;
     } else if (a > 9) {
-      text += "🟥"
-      return
+      text += "🟥";
+      return;
     }
-  })
+  });
 
   text += ` <- ${today.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short",
-    year: "numeric"
-  })}`
+    year: "numeric",
+  })}`;
 
   await client.chat.postMessage({
     channel: body.channel_id,
     text: "activity",
-    blocks: [{
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: `\`\`\`${text}\`\`\``
-      }
-    }, {
-      type: "divider"
-      }, {
-      type: "context",
-      elements: [
-        {
+    blocks: [
+      {
+        type: "section",
+        text: {
           type: "mrkdwn",
-          text: `monkeytype activity graph for <@${user.userId}>  |  less ⬜🟨🟧🟫🟥 more  |  reads left to right`
-        }
-      ]
-    }]
-  })
-})
+          text: `\`\`\`${text}\`\`\``,
+        },
+      },
+      {
+        type: "divider",
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `monkeytype activity graph for <@${user.userId}>  |  less ⬜🟨🟧🟫🟥 more  |  reads left to right`,
+          },
+        ],
+      },
+    ],
+  });
+});
 
 try {
-  await slack.start(3000)
+  await slack.start(3000);
 } catch (err) {
-  console.log(err)
-  process.exit(1)
+  console.log(err);
+  process.exit(1);
 }

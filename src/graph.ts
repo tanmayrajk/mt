@@ -1,3 +1,5 @@
+import { ne } from "drizzle-orm";
+
 enum ChartSymbols {
   leftUpper = "╭",
   leftLower = "╰",
@@ -14,71 +16,19 @@ enum ChartSymbols {
   cross = "×",
 }
 
-const chartData = {
-  wpm: [60, 120, 104, 72, 82, 78, 77, 84, 71, 70, 72, 77, 78, 80, 74],
-  burst: [72, 180, 132, 36, 96, 72, 84, 132, 84, 12, 96, 132, 96, 96, 156],
-  err: [1, 0, 2, 3, 0, 1, 1, 0, 2, 1, 0, 0, 0, 0, 9],
-};
-
-// const minWpm = Math.min(...chartData.wpm)
-// const maxWpm = Math.max(...chartData.wpm)
-// const maxMinDiff = maxWpm - minWpm;
-
-// const ranksCount = 4
-// const rankDivision = (maxWpm / ranksCount)
-
-// const ranks = [rankDivision, rankDivision * 2, rankDivision * 3, rankDivision * 4]
-// let wpmWeightedByRanks: { wpm: number, rank: number }[] = []
-
-// console.log(ranks)
-
-// chartData.wpm.forEach(wpm => {
-//   let rank = 0
-//   let rankDiff: number[] = []
-//   ranks.forEach(rank => {
-//     rankDiff.push(Math.abs(wpm - rank))
-//   })
-//   rank = rankDiff.indexOf(Math.min(...rankDiff))
-//   // console.log(rankDiff, rank, wpm, diff)
-//   wpmWeightedByRanks.push({
-//     wpm, rank
-//   })
-// })
-
-// console.log(wpmWeightedByRanks)
-
-// function generateGraph() {
-//   let text = ""
-//   for (let i = 0; i < ranksCount; i++) {
-//     text += `${ranks.toReversed()[i]?.toString().padStart(3, " ")} ┫`
-//     for (let j = 0; j < wpmWeightedByRanks.length; j++) {
-//       if (wpmWeightedByRanks[j]?.rank === (ranksCount - 1) - i) {
-//         if (wpmWeightedByRanks[j-1]) {
-//           if (wpmWeightedByRanks[j - 1]?.rank! > wpmWeightedByRanks[j]?.rank!) {
-//             j+1 === wpmWeightedByRanks.length ? text += "   ╯   " : text += "   ╯"
-//           } else {
-//             j+1 === wpmWeightedByRanks.length ? text += "   ╭   " : text += "   ╭"
-//           }
-//         } else {
-//           j+1 === wpmWeightedByRanks.length ? text += "   ╭   " : text += "   ╭"
-//         }
-//       } else {
-//         j+1 === wpmWeightedByRanks.length ? text += "       " : text += "    "
-//       }
-//     }
-//     text += "┣\n"
-//   }
-//   text += `${"0".padStart(3, " ")} ╋` + "━━━┳".repeat(wpmWeightedByRanks.length) + "━━━" + "╋"
-//   text += "\n     "
-//   for (let i = 0; i < 15; i++) {
-//     text += `  ${(i+1).toString().padStart(2, " ")}`
-//   }
-//   return text
-// }
+// const chartData = {
+//   wpm: [
+//     156, 150, 156, 156, 156, 156, 154, 147, 149, 144, 144, 143, 142, 141, 141,
+//   ],
+//   burst: [
+//     156, 144, 168, 156, 156, 156, 144, 96, 168, 108, 144, 132, 132, 120, 144,
+//   ],
+//   err: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+// };
 
 /// BIG BOY GRAPH function
 
-function generateGraphLikeABigBoy(
+export function generateGraphLikeABigBoy(
   dataPoints: number[],
   options: { ticksCount: number; xGap: number } = { ticksCount: 4, xGap: 3 },
 ) {
@@ -90,7 +40,7 @@ function generateGraphLikeABigBoy(
   const rows = ticksCount * 2 + 1;
   const columns = lineChartDataPoints.length;
 
-  console.log(rows);
+  // console.log(rows);
 
   let rankedData: { value: number; row: number; column: number }[] = [];
   lineChartDataPoints.forEach((p, i) => {
@@ -170,53 +120,6 @@ function generateGraphLikeABigBoy(
       num[0] ? (el[0] = num[0]) : (el[0] = el[0]!);
       tickCounter += 1;
     }
-
-    // const pointsToPlot = rankedData.filter((p) => p.row === rows - 1 - i);
-    // const xOffset = maxtickLabelSize + 2;
-    // pointsToPlot.forEach((currentPoint) => {
-    //   const prevPoint = rankedData.find(
-    //     (p) => p.column === currentPoint.column - 1,
-    //   );
-    //   const nextPoint = rankedData.find(
-    //     (p) => p.column === currentPoint.column + 1,
-    //   );
-    //   const currentPointStringIndex =
-    //     xOffset + currentPoint.column - 1 + 3 * currentPoint.column;
-
-    //   el[currentPointStringIndex] = "*";
-
-    //   if (nextPoint) {
-    //     el[currentPointStringIndex + 1] = ChartSymbols.horizontalLine;
-    //     el[currentPointStringIndex + 2] = ChartSymbols.horizontalLine;
-    //     el[currentPointStringIndex + 3] = ChartSymbols.horizontalLine;
-
-    // el[currentPointStringIndex + 4] = "i";
-    // console.log(currentPoint.column, nextPoint.column);
-
-    //   if (nextPoint.row < currentPoint.row) {
-    //     el[currentPointStringIndex + 4] = ChartSymbols.rightUpper;
-    //   } else {
-    //     el[currentPointStringIndex + 4] = ChartSymbols.rightLower;
-    //     const diff = nextPoint.row - currentPoint.row;
-    //     el[currentPointStringIndex + 4 - oneLineLength] =
-    //       ChartSymbols.verticalLine;
-    //   }
-    // }
-
-    // if (prevPoint) {
-    //   if (prevPoint.row < currentPoint.row) {
-    //     el[currentPointStringIndex] = ChartSymbols.leftUpper;
-    //   } else {
-    //     el[currentPointStringIndex] = ChartSymbols.rightUpper;
-    //   }
-    // } else {
-    //   el[currentPointStringIndex] = ChartSymbols.leftUpper;
-    // }
-    // if (!nextPoint) {
-    //   el[currentPointStringIndex] = ChartSymbols.rightUpper;
-    // }
-    //
-    // });
   });
 
   function indexFromCoords(column: number) {
@@ -283,82 +186,21 @@ function generateGraphLikeABigBoy(
             }
           }
         }
-
-        // if (rowDiff != 0 && Math.abs(rowDiff) != 1) {
-        //   if (rowDiff > 0) {
-        //     graphTextChars[rows - 1 - i]![indexFromCoords(j) + 4] =
-        //       ChartSymbols.rightLower;
-        //     graphTextChars[rows - 1 - i - 1]![indexFromCoords(j + 1)] =
-        //       ChartSymbols.verticalLine;
-        //     graphTextChars[rows - 1 - i - 2]![indexFromCoords(j + 1)] =
-        //       ChartSymbols.verticalLine;
-        //     graphTextChars[rows - 1 - i - 3]![indexFromCoords(j + 1)] =
-        //       ChartSymbols.verticalLine;
-        //   } else if (rowDiff < 0) {
-        //     graphTextChars[rows - 1 - i]![indexFromCoords(j) + 4] =
-        //       ChartSymbols.rightUpper;
-        //     graphTextChars[rows - 1 - i + 1]![indexFromCoords(j + 1)] =
-        //       ChartSymbols.verticalLine;
-        //   }
-        // }
       }
       if (currentPoint && !nextPoint) {
-        for (let m = 1; m < rows + 1 - currentPoint.row; m++) {
-          console.log("hi lol");
-          graphTextChars[rows - 1 - i + m]![indexFromCoords(j)] =
-            ChartSymbols.verticalLine;
+        for (let m = rows - i; m < ticksCount * 2; m++) {
+          graphTextChars[m]![indexFromCoords(j)] = ChartSymbols.verticalLine;
         }
       }
       if (currentPoint && !prevPoint) {
-        for (let m = 1; m < rows - 1 - currentPoint.row; m++) {
-          console.log("hi lol");
-          graphTextChars[rows - 1 - i + m]![indexFromCoords(j)] =
-            ChartSymbols.verticalLine;
+        for (let m = rows - i; m < ticksCount * 2; m++) {
+          graphTextChars[m]![indexFromCoords(j)] = ChartSymbols.verticalLine;
         }
       }
-      // if ((currentPoint && !nextPoint) || (currentPoint && !prevPoint)) {
-      //   graphTextChars[rows - 1 - i + 1]![indexFromCoords(j)] =
-      //     ChartSymbols.verticalLine;
-      //   graphTextChars[rows - 1 - i + 2]![indexFromCoords(j)] =
-      //     ChartSymbols.verticalLine;
-      //   graphTextChars[rows - 1 - i + 3]![indexFromCoords(j)] =
-      //     ChartSymbols.verticalLine;
-      //   graphTextChars[rows - 1 - i + 4]![indexFromCoords(j)] =
-      //     ChartSymbols.verticalLine;
-      // }
-      // if (currentPoint) {
-      //   if (!prevPoint) {
-      //     graphTextChars[rows - 1 - i]![indexFromCoords(j)] =
-      //       ChartSymbols.leftUpper;
-      //   }
-      //   if (prevPoint && prevPoint.row < currentPoint.row) {
-      //     graphTextChars[rows - 1 - i]![indexFromCoords(j)] =
-      //       ChartSymbols.leftUpper;
-      //   }
-      //   if (prevPoint && prevPoint.row > currentPoint.row) {
-      //     graphTextChars[rows - 1 - i]![indexFromCoords(j)] =
-      //       ChartSymbols.rightUpper;
-      //   }
-      // }
-      // if (nextPoint && currentPoint) {
-      //   console.log(currentPoint.row, nextPoint.row);
-      //   if (nextPoint.row < currentPoint.row) {
-      //     graphTextChars[rows - 1 - i]![indexFromCoords(j)] =
-      //       ChartSymbols.leftUpper;
-      //   } else if (nextPoint.row > currentPoint.row) {
-      //     graphTextChars[rows - 1 - i]![indexFromCoords(j)] =
-      //       ChartSymbols.leftLower;
-      //   } else if (nextPoint.row === currentPoint.row) {
-      //     graphTextChars[rows - 1 - i]![indexFromCoords(j)] =
-      //       ChartSymbols.horizontalLine;
-      //   }
-      // }
     }
   }
 
-  console.log(graphTextChars.map((i) => i.join("")).join("\n"));
-
-  // return editableGraphText.join("\n")
+  return graphTextChars.map((i) => i.join("")).join("\n");
 }
 
-console.log(generateGraphLikeABigBoy(chartData.wpm));
+// console.log(generateGraphLikeABigBoy(chartData.wpm));
