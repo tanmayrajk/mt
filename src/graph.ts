@@ -112,7 +112,9 @@ export function generateGraphLikeABigBoy(
     }
 
     if (i % 2 === 0) {
-      const num = ((maxDataPoint / ticksCount) * (ticksCount - tickCounter))
+      const num = Math.round(
+        (maxDataPoint / ticksCount) * (ticksCount - tickCounter),
+      )
         .toString()
         .padStart(maxtickLabelSize, " ");
       num[2] ? (el[2] = num[2]) : (el[2] = el[2]!);
