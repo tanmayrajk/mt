@@ -32,6 +32,14 @@ mt is a slack bot for monkeytype. currently it allows five commands in total:
 - to build the thing first do a `bun install`.
 - then run the thing with `bun run start`.
 
+---
+
+## misc
+
+the app is currently hosted on the a free render tier at [https://mt-34q3.onrender.com](https://mt-34q3.onrender.com). that means that the sqlite3 database will be cleared out everytime the server resets (which would be very common). ideally i would either separate the db from the server or use a server that wouldn't turn off on inactivity, but for now this is all you get 😔.
+
+---
+
 ## ai usage
 
 ai was occasionally used, by which i mean i just asked chatgpt/claude sometimes. no ai autocompletion was used as i keep it turned off.
