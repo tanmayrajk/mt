@@ -552,7 +552,7 @@ slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
     return;
   }
 
-  const url = `https://api.monkeytype.com/leaderboards/rank?language=english&mode=${mode}&mode2=${mode2}`;
+  const url = `https://api.monkeytype.com/users/personalBests?mode=${mode}&mode2=${mode2}`;
   const allUsers = await db.query.users.findMany({
     where: isNotNull(users.apeKey),
   });
@@ -575,10 +575,8 @@ slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
       if (data.data === null) continue;
       leaderboardData.push({
         userId: allUsers[i]?.userId,
-        rank: data.data.rank,
         wpm: Math.round(data.data.wpm),
         acc: Math.round(data.data.acc),
-        name: data.data.name,
       });
     } catch (e) {
       console.log(e);
@@ -593,7 +591,7 @@ slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
     return;
   }
 
-  leaderboardData.sort((a, b) => a.rank - b.rank);
+  leaderboardData.sort((a, b) => b.wpm - a.wpm);
 
   const leaderboardBlocks = leaderboardData.map((u, i) => {
     return {

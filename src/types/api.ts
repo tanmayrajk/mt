@@ -41,15 +41,18 @@ export interface TestActivity {
   };
 }
 
-export interface LeaderboardRank {
+export interface PersonalBest {
   message: string;
   data: {
-    wpm: number;
     acc: number;
-    timestamp: number;
-    raw: number;
     consistency: number;
-    name: string;
-    rank: number;
+    difficulty: string;
+    lazyMode: boolean;
+    language: string;
+    punctuation: boolean;
+    numbers: boolean;
+    raw: number;
+    wpm: number;
+    timestamp: number;
   } | null;
 }
