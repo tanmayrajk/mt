@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@fastify/formbody": "^8.0.2",
+    "@libsql/client": "^0.17.4",
     "@slack/bolt": "^5.0.0",
     "@slack/web-api": "^7.19.0",
     "date-fns": "^4.4.0",
