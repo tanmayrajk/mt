@@ -6,7 +6,7 @@ const slack = new App({
 
 import { db } from "./db";
 import { users } from "./db/schema";
-import type { LastResult, LeaderboardRank, TestActivity } from "./types/api";
+import type { LastResult, PersonalBest, TestActivity } from "./types/api";
 import { eq, isNotNull } from "drizzle-orm";
 
 import { getNameFromLastTest } from "./utils";
@@ -571,7 +571,7 @@ slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
         console.log("bye lol");
         continue;
       }
-      const data = (await res.json()) as LeaderboardRank;
+      const data = (await res.json()) as PersonalBest;
       if (data.data === null) continue;
       leaderboardData.push({
         userId: allUsers[i]?.userId,
