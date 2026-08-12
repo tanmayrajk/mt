@@ -21,11 +21,24 @@ slack.command("/setapekey", async ({ command, ack, respond }) => {
   await ack();
 
   const apeKey = command.text.trim();
+
+  if (!apeKey) {
+    await respond({
+      text: "brah put the apekey 🙄",
+    });
+    return;
+  }
+
   const userName = await getNameFromLastTest(apeKey);
 
   if (!userName) {
     await respond({
       text: "invalid apekey 🙄",
+    });
+    return;
+  } else if (userName === 404) {
+    await respond({
+      text: "seems like your account is new. do some tests first and then try again",
     });
     return;
   }
