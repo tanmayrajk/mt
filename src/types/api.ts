@@ -43,16 +43,18 @@ export interface TestActivity {
 
 export interface PersonalBest {
   message: string;
-  data: {
-    acc: number;
-    consistency: number;
-    difficulty: string;
-    lazyMode: boolean;
-    language: string;
-    punctuation: boolean;
-    numbers: boolean;
-    raw: number;
-    wpm: number;
-    timestamp: number;
-  } | null;
+  data:
+    | {
+        acc: number;
+        consistency: number;
+        difficulty: string;
+        lazyMode: boolean;
+        language: string;
+        punctuation: boolean;
+        numbers: boolean;
+        raw: number;
+        wpm: number;
+        timestamp: number;
+      }[]
+    | null;
 }

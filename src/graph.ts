@@ -30,12 +30,14 @@ enum ChartSymbols {
 
 export function generateGraphLikeABigBoy(
   dataPoints: number[],
+  errorPoints: number[],
   options: { ticksCount: number; xGap: number } = { ticksCount: 4, xGap: 3 },
 ) {
   if (dataPoints.length <= 0) return;
   const lineChartDataPoints = dataPoints;
   const maxDataPoint = Math.max(...lineChartDataPoints);
   const minDataPoint = Math.min(...lineChartDataPoints);
+  const maxErrorPoint = Math.max(...errorPoints);
   const { ticksCount, xGap } = options;
   const rows = ticksCount * 2 + 1;
   const columns = lineChartDataPoints.length;
@@ -58,9 +60,18 @@ export function generateGraphLikeABigBoy(
 
   const pointsCount = lineChartDataPoints.length;
   const pointsGapCount = (pointsCount + 1) * xGap;
+  const chartAreaWidth = pointsCount + pointsGapCount;
   const maxtickLabelSize = maxDataPoint.toString().length;
+  const rightBorderIndex = maxtickLabelSize + 2 + chartAreaWidth;
+  const maxErrorTickLabelSize = maxErrorPoint.toString().length;
 
-  const oneLineLength = maxtickLabelSize + 2 + pointsCount + pointsGapCount + 1;
+  const oneLineLength =
+    maxtickLabelSize +
+    2 +
+    pointsCount +
+    pointsGapCount +
+    2 +
+    maxErrorTickLabelSize;
 
   for (let i = 0; i < ticksCount * 2 + 2; i++) {
     const isLast = i === ticksCount * 2 + 2 - 1;
@@ -74,34 +85,35 @@ export function generateGraphLikeABigBoy(
   });
 
   let tickCounter = 0;
+  let lastErrLabel = "";
 
   graphTextChars.forEach((el, i) => {
     if (i != ticksCount * 2 && i != ticksCount * 2 + 1) {
       if (i % 2 != 0) {
         el[maxtickLabelSize + 1] = ChartSymbols.boldVerticalLine;
-        el[el.length - 1] = ChartSymbols.boldVerticalLine;
+        el[rightBorderIndex] = ChartSymbols.boldVerticalLine;
       } else {
         el[maxtickLabelSize + 1] = ChartSymbols.rightTJunction;
-        el[el.length - 1] = ChartSymbols.leftTJunction;
+        el[rightBorderIndex] = ChartSymbols.leftTJunction;
       }
     }
 
     if (i === ticksCount * 2) {
       el.forEach((e, f) => {
-        if (f > maxtickLabelSize + 1 && f < el.length - 1) {
+        if (f > maxtickLabelSize + 1 && f < rightBorderIndex) {
           if (f % (maxtickLabelSize + 1) === 0)
             el[f] = ChartSymbols.bottomTJunction;
           else el[f] = ChartSymbols.boldHorizontalLine;
         }
       });
       el[4] = ChartSymbols.crossJunction;
-      el[el.length - 1] = ChartSymbols.crossJunction;
+      el[rightBorderIndex] = ChartSymbols.crossJunction;
     }
 
     if (i === ticksCount * 2 + 1) {
       let xCounter = 0;
       el.forEach((e, f) => {
-        if (f > maxtickLabelSize + 1 && f < el.length - 1) {
+        if (f > maxtickLabelSize + 1 && f < rightBorderIndex) {
           if (f % (maxtickLabelSize + 1) === 0) {
             xCounter += 1;
             el[f] = xCounter.toString()[0]!;
@@ -120,6 +132,33 @@ export function generateGraphLikeABigBoy(
       num[2] ? (el[2] = num[2]) : (el[2] = el[2]!);
       num[1] ? (el[1] = num[1]) : (el[1] = el[1]!);
       num[0] ? (el[0] = num[0]) : (el[0] = el[0]!);
+
+      const errNum = Math.round(
+        (maxErrorPoint / ticksCount) * (ticksCount - tickCounter),
+      )
+        .toString()
+        .padStart(maxErrorTickLabelSize, " ");
+
+      const errLabel = errNum.trim();
+      const isBottomTick = i == ticksCount * 2;
+      const isZero = errLabel === "0";
+
+      const shouldShow = isBottomTick || (!isZero && errLabel !== lastErrLabel);
+
+      if (shouldShow) {
+        for (let e = 0; e < maxErrorTickLabelSize; e++) {
+          el[rightBorderIndex + 2 + e] = errNum[e]!;
+        }
+        lastErrLabel = errLabel;
+      } else {
+        for (let e = 0; e < maxErrorTickLabelSize; e++) {
+          el[rightBorderIndex + 2 + e] = " ";
+        }
+      }
+
+      // for (let e = 0; e < maxErrorTickLabelSize; e++) {
+      //   el[rightBorderIndex + 2 + e] = errNum[e]!;
+      // }
       tickCounter += 1;
     }
   });
@@ -199,10 +238,17 @@ export function generateGraphLikeABigBoy(
           graphTextChars[m]![indexFromCoords(j)] = ChartSymbols.verticalLine;
         }
       }
+
+      if (currentPoint && errorPoints[j - 1]) {
+        const error = errorPoints[j - 1];
+        const errorRow = Math.round((error / maxErrorPoint) * (rows - 1));
+        const graphRow = rows - 1 - errorRow;
+        graphTextChars[graphRow]![indexFromCoords(j)] = ChartSymbols.cross;
+      }
     }
   }
 
   return graphTextChars.map((i) => i.join("")).join("\n");
 }
 
-// console.log(generateGraphLikeABigBoy(chartData.wpm));
+// console.log(generateGraphLikeABigBoy(chartData.wpm, chartData.err));

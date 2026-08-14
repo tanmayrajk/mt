@@ -368,7 +368,7 @@ slack.command("/lastrun", async ({ command, ack, body, respond }) => {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `\`\`\`${generateGraphLikeABigBoy(data.chartData.wpm)}\`\`\``,
+            text: `\`\`\`${generateGraphLikeABigBoy(data.chartData.wpm, data.chartData.err)}\`\`\``,
           },
         },
         {
@@ -547,12 +547,13 @@ slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
 
   if (!["words", "time"].includes(mode)) {
     await respond({
-      text: "add 'word' or 'time' after the command to get the respective leaderboard",
+      text: "add 'words' or 'time' after the command to get the respective leaderboard",
     });
     return;
   }
 
   const url = `https://api.monkeytype.com/users/personalBests?mode=${mode}&mode2=${mode2}`;
+  console.log(url);
   const allUsers = await db.query.users.findMany({
     where: isNotNull(users.apeKey),
   });
@@ -572,11 +573,12 @@ slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
         continue;
       }
       const data = (await res.json()) as PersonalBest;
+      console.log(data);
       if (data.data === null) continue;
       leaderboardData.push({
         userId: allUsers[i]?.userId,
-        wpm: Math.round(data.data.wpm),
-        acc: Math.round(data.data.acc),
+        wpm: Math.round(data.data[0]!.wpm),
+        acc: Math.round(data.data[0]!.acc),
       });
     } catch (e) {
       console.log(e);
@@ -623,7 +625,7 @@ slack.command("/leaderboard", async ({ command, ack, body, respond }) => {
           elements: [
             {
               type: "mrkdwn",
-              text: `\`/leaderboard\` run by <@${body.user_id}`,
+              text: `\`/leaderboard\` run by <@${body.user_id}>`,
             },
           ],
         },
